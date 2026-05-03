@@ -1,5 +1,60 @@
 # Project 3 Report: CDC & Orchestrated Lakehouse Pipeline
 
+## Setup
+
+**step 1:** run these commands on host machine terminal
+```shell
+docker compose up -d
+docker exec jupyter python /home/jovyan/project/seed.py
+```
+
+**step 2:** run these commands on host machine terminals
+```shell
+docker exec jupyter python /home/jovyan/project/produce.py --loop
+docker exec jupyter python /home/jovyan/project/simulate.py
+```
+
+**step 3:** run this on jupyter terminal
+```shell
+curl -i -X POST -H "Accept:application/json" -H "Content-Type:application/json" \
+http://connect:8083/connectors/ -d '{
+  "name": "postgres-cdc-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "tasks.max": "1",
+    "database.hostname": "postgres",
+    "database.port": "5432",
+    "database.user": "cdc_user",
+    "database.password": "admin",
+    "database.dbname": "sourcedb",
+    "topic.prefix": "dbserver1",
+    "schema.include.list": "public",
+    "table.include.list": "public.customers,public.drivers",
+    "plugin.name": "pgoutput",
+    "snapshot.mode": "initial"
+  }
+}'
+```
+
+run this command on host terminal to check if the previous command worked
+```shell
+curl http://localhost:8083/connectors/postgres-cdc-connector/status
+```
+
+**optional step:** if airflow login doesn't work, run this command to override login credentials
+```shell
+docker exec airflow airflow users reset-password -u admin -p admin
+```
+
+step 4: in airflow UI, go to admin->connections and create a new connection named kafka_connect if it doesn't exist
+- Connection Id: kafka_connect
+- Connection Type: HTTP
+- Host: connect
+- Port: 8083
+- leave other fields as default
+
+step 5: trigger DAG on Airflow UI
+
 ## 1. CDC Correctness
 *   **Silver Matches PostgreSQL Source:** The pipeline successfully materializes the current state of the source database into the Silver Iceberg table. A `validate_silver` task queries the PostgreSQL database using `psycopg2`, queries the Iceberg table, and asserts that the total row counts are identical.
 *   **Handling DELETEs:** Debezium tombstone events often have a null `after` payload. To capture these, the Bronze-to-Silver extraction logic uses `coalesce` to pull the ID from `$.payload.after.id` or `$.payload.before.id`. The `MERGE INTO` statement then applies the deletion to the Silver table using `WHEN MATCHED AND s.op = 'd' THEN DELETE`.
