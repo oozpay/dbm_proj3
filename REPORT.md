@@ -66,8 +66,6 @@ step 5: trigger DAG on Airflow UI
 *   **Bronze Taxi:** Similar to Bronze CDC, this is an append-only table containing the raw JSON string payload from the Kafka `taxi-trips` topic.
 *   **Silver Taxi:** Contains extracted and typed columns (`vendor_id`, `fare`, `pickup_time`). It differs from Bronze by enforcing data quality rules, such as filtering out records where `fare <= 0`.
 *   **Gold Layers:** Tables like `gold_taxi` and `gold_assignment_efficiency` represent aggregate business metrics. They differ from Silver by grouping records (e.g., by `vendor_id` or `driver_id`) to compute metrics like total revenue, average fare per mile, and idle time.
-
-*(Note: Add Iceberg Snapshot and Time-Travel queries)*
 *   **Iceberg Snapshot History Query:** `SELECT * FROM local.warehouse.silver_cdc.snapshots;`
 *   **Time-Travel Query:** `SELECT * FROM local.warehouse.silver_cdc TIMESTAMP AS OF '<timestamp>';`
 
