@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+This is a test
 Replays NYC taxi trip rows as JSON events into a Kafka topic.
 
 Reads a parquet file row by row and publishes each row as a JSON message.
@@ -32,7 +33,7 @@ import time
 from datetime import datetime
 
 # Self-install dependencies so the script works from a fresh Jupyter terminal
-# without needing to run the notebook setup cell first.
+# without needing to run the notebook setup cell first.3
 def _ensure(pkg, import_name=None):
     import importlib.util
     import subprocess
@@ -53,6 +54,7 @@ from kafka.errors import NoBrokersAvailable
 # Serialisation helpers
 # ---------------------------------------------------------------------------
 
+
 def _json_default(obj):
     """Fallback serialiser for types json.dumps can't handle."""
     if isinstance(obj, (pd.Timestamp, datetime)):
@@ -71,10 +73,12 @@ def row_to_json(row: dict) -> bytes:
 # ---------------------------------------------------------------------------
 
 def main() -> None:
+    print(1)
     parser = argparse.ArgumentParser(
         description="Replay taxi trip parquet rows into Kafka.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
+    print(2)
     parser.add_argument("--data",      default="data/yellow_tripdata_2025-01.parquet",
                         help="Path to the parquet file (relative to this script).")
     parser.add_argument("--topic",     default="taxi-trips",
@@ -86,17 +90,21 @@ def main() -> None:
     parser.add_argument("--loop",      action="store_true",
                         help="Replay the file indefinitely (Ctrl-C to stop).")
     args = parser.parse_args()
+    print(3)
 
     # Resolve data path relative to this script's directory
     script_dir = os.path.dirname(os.path.abspath(__file__))
     data_path  = os.path.join(script_dir, args.data)
+    print(4)
 
     if not os.path.exists(data_path):
+        print(4)
         sys.exit(
             f"Data file not found: {data_path}\n"
             f"Place the parquet files provided for the project in the data/ directory."
         )
 
+    print(5)
     print(f"Reading  : {data_path}")
     df = pd.read_parquet(data_path)
     print(f"Rows     : {len(df):,}")
@@ -105,6 +113,7 @@ def main() -> None:
     interval = 1.0 / args.rate
 
     print(f"\nConnecting to Kafka at {args.bootstrap} …")
+    print(6)
     try:
         producer = KafkaProducer(
             bootstrap_servers=args.bootstrap,
@@ -113,13 +122,16 @@ def main() -> None:
             acks=1,
             retries=3,
         )
+        print(7)
     except NoBrokersAvailable:
+        print(8)
         sys.exit(
             "Could not reach Kafka. Make sure the stack is running:\n"
             "  docker compose up -d\n"
             "and that you are inside the Docker network (Jupyter terminal or docker exec)."
         )
 
+    print(9)
     print(f"Topic    : {args.topic}")
     print(f"Rate     : {args.rate:.1f} events/s")
     print(f"Loop     : {args.loop}")
@@ -135,14 +147,15 @@ def main() -> None:
             if args.loop:
                 print(f"── Pass {pass_num} ──────────────────────────────────")
 
-            for _, row in df.iterrows():
-                msg = row.to_dict()
+            columns = list(df.columns)
+
+            for row in df.head(10000).itertuples(index=False, name=None):
+                msg = dict(zip(columns, row))
                 # Use VendorID as the partition key so trips from the same
                 # vendor land on the same partition (ordering guarantee).
                 key = str(msg.get("VendorID", ""))
                 producer.send(args.topic, key=key, value=msg)
                 sent += 1
-
                 if sent == 1 or sent % 100 == 0:
                     elapsed = time.monotonic() - t0
                     rate    = sent / elapsed
@@ -169,4 +182,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    print("hey")
     main()
