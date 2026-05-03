@@ -91,3 +91,7 @@ The custom scenario required matching drivers to taxi trips using a `MOD` operat
 *   **Key Findings:** 
     *   **Best Driver:** Driver ID `1104` achieved the best fare-per-mile ratio at `$6.84/mi`.
     *   **Workload Balance:** The assignment algorithm yielded a perfectly balanced workload. Across 679 active drivers, the standard deviation of assigned trips was merely `0.45`, and the Max/Min workload ratio was `1.0` (with drivers completing either 229 or 230 trips). Consequently, exactly 0 drivers were flagged as overloaded.
+
+![App Screenshot](screenshots/results1.png)
+![App Screenshot](screenshots/results2.png)
+![App Screenshot](screenshots/results3.png)
